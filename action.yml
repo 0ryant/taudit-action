@@ -1,0 +1,130 @@
+name: taudit pipeline authority gate
+description: Gate risky CI/CD authority paths before they reach main.
+author: 0ryant
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  mode:
+    description: "taudit command mode: verify, scan, or graph."
+    required: false
+    default: verify
+  version:
+    description: "Exact taudit CLI version to install."
+    required: false
+    default: "1.1.2"
+  paths:
+    description: "Newline-separated pipeline paths or globs."
+    required: false
+    default: ".github/workflows/"
+  platform:
+    description: "Pipeline platform: auto, github-actions, azure-devops, gitlab, or bitbucket."
+    required: false
+    default: auto
+  ado-org:
+    description: "Optional Azure DevOps organization for variable-group enrichment."
+    required: false
+  ado-project:
+    description: "Optional Azure DevOps project for variable-group enrichment."
+    required: false
+  ado-pat:
+    description: "Optional read-only Azure DevOps PAT for variable-group enrichment."
+    required: false
+  policy:
+    description: "Invariant policy file or directory. Required for verify."
+    required: false
+  include-builtin:
+    description: "Run taudit built-in rules in verify mode."
+    required: false
+    default: "false"
+  ignore-file:
+    description: "Optional explicit .tauditignore path."
+    required: false
+  suppressions:
+    description: "Optional explicit .taudit-suppressions.yml path."
+    required: false
+  suppression-mode:
+    description: "Suppression behavior: downgrade or tag-only."
+    required: false
+    default: downgrade
+  baseline-root:
+    description: "Repository root containing .taudit/baselines/."
+    required: false
+  gate-on-all:
+    description: "Ignore baseline-new-only gating and gate on all findings."
+    required: false
+    default: "false"
+  strict:
+    description: "Fail verify on discovered-file parse/read errors."
+    required: false
+    default: "false"
+  ignore-partial:
+    description: "Suppress findings produced by partial-graph reasoning."
+    required: false
+    default: "false"
+  format:
+    description: "Mode-specific output format."
+    required: false
+  output:
+    description: "Optional report/graph output path."
+    required: false
+  graph-view:
+    description: "Graph projection: authority or exploit."
+    required: false
+    default: authority
+  severity-threshold:
+    description: "Minimum severity: critical, high, medium, low, or info."
+    required: false
+  max-hops:
+    description: "Maximum authority propagation depth."
+    required: false
+  no-color:
+    description: "Disable ANSI color in taudit text output."
+    required: false
+    default: "true"
+  fallback-cargo:
+    description: "Use cargo install fallback if release asset resolution is unavailable."
+    required: false
+    default: "false"
+
+outputs:
+  exit-code:
+    description: "taudit process exit code."
+  outcome:
+    description: "pass, violations, or config-error."
+  report-path:
+    description: "Output report path, if written."
+  graph-path:
+    description: "Output graph path, if written."
+  findings-count:
+    description: "Finding count parsed from machine output where available."
+  policy-path:
+    description: "Policy path used for verify."
+  ignore-file-used:
+    description: "Explicit or discovered ignore file, if known."
+  suppressions-file-used:
+    description: "Explicit or discovered suppressions file, if known."
+  suppression-mode-used:
+    description: "downgrade or tag-only."
+  baseline-root-used:
+    description: "Baseline root used for scan/verify."
+  baseline-status:
+    description: "found, missing, unused, or unknown."
+  partial-policy:
+    description: "normal or ignore-partial."
+  ado-enrichment:
+    description: "unused, configured, or failed."
+  new-findings-count:
+    description: "New finding count where available."
+  preexisting-critical-count:
+    description: "Pre-existing critical count where available."
+  waived-count:
+    description: "Suppressed/baseline-waived count where available."
+  taudit-version:
+    description: "Actual taudit version invoked."
+
+runs:
+  using: node20
+  main: src/index.js

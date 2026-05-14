@@ -1,0 +1,42 @@
+{
+  "context": {
+    "mode": "verify",
+    "tauditVersion": "1.1.0",
+    "policyPath": ".taudit/policy/",
+    "includeBuiltin": false,
+    "ignoreFile": ".tauditignore",
+    "suppressions": ".taudit-suppressions.yml",
+    "suppressionMode": "downgrade",
+    "baselineRoot": ".",
+    "baselineStatus": "found",
+    "partialPolicy": "normal",
+    "adoEnrichment": "configured",
+    "exitCode": 1,
+    "outcome": "violations",
+    "secrets": ["ado_pat_fake_1234567890", "ghp_fake_token_value"]
+  },
+  "result": {
+    "findings": [
+      {
+        "id": "TAUDIT001",
+        "severity": "high",
+        "message": "Variable group reference requires review",
+        "source": ".github/workflows/build.yml",
+        "metadata": {
+          "adoPat": "ado_pat_fake_1234567890",
+          "githubToken": "ghp_fake_token_value"
+        }
+      }
+    ],
+    "summary": {
+      "findingsCount": 1,
+      "newFindingsCount": 1,
+      "preexistingCriticalCount": 0,
+      "waivedCount": 0
+    }
+  },
+  "forbiddenSubstrings": [
+    "ado_pat_fake_1234567890",
+    "ghp_fake_token_value"
+  ]
+}

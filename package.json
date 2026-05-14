@@ -1,0 +1,14 @@
+{
+  "name": "taudit-action",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Marketplace action wrapper for taudit CI/CD authority analysis.",
+  "scripts": {
+    "test": "node scripts/run-contract-tests.mjs",
+    "check": "node --check src/*.js && node --check bin/taudit-action && node --check scripts/*.mjs && node --check test/*.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,33 @@
+name: taudit sarif
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sarif:
+    name: generate and upload SARIF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate taudit SARIF
+        uses: 0ryant/taudit-action@v1
+        continue-on-error: true
+        with:
+          mode: verify
+          policy: .taudit/policy/
+          paths: .github/workflows/
+          format: sarif
+          output: taudit.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: taudit.sarif

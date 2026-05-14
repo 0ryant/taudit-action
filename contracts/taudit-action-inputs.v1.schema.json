@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taudit.dev/schemas/github-action-inputs.v1.json",
+  "title": "taudit GitHub Action Inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "mode": { "enum": ["verify", "scan", "graph"], "default": "verify" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" },
+    "paths": { "type": "string", "default": ".github/workflows/" },
+    "platform": { "enum": ["auto", "github-actions", "azure-devops", "gitlab", "bitbucket"], "default": "auto" },
+    "ado-org": { "type": "string" },
+    "ado-project": { "type": "string" },
+    "ado-pat": { "type": "string" },
+    "policy": { "type": "string" },
+    "include-builtin": { "type": "boolean", "default": false },
+    "ignore-file": { "type": "string" },
+    "suppressions": { "type": "string" },
+    "suppression-mode": { "enum": ["downgrade", "tag-only"], "default": "downgrade" },
+    "baseline-root": { "type": "string" },
+    "gate-on-all": { "type": "boolean", "default": false },
+    "strict": { "type": "boolean", "default": false },
+    "ignore-partial": { "type": "boolean", "default": false },
+    "format": { "type": "string" },
+    "output": { "type": "string" },
+    "graph-view": { "enum": ["authority", "exploit"], "default": "authority" },
+    "severity-threshold": { "enum": ["critical", "high", "medium", "low", "info"] },
+    "max-hops": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "no-color": { "type": "boolean", "default": true },
+    "fallback-cargo": { "type": "boolean", "default": false }
+  },
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          { "not": { "required": ["mode"] } },
+          { "properties": { "mode": { "const": "verify" } }, "required": ["mode"] }
+        ]
+      },
+      "then": { "required": ["policy"] }
+    }
+  ],
+  "dependentRequired": {
+    "ado-org": ["ado-project", "ado-pat"],
+    "ado-project": ["ado-org", "ado-pat"],
+    "ado-pat": ["ado-org", "ado-project"]
+  }
+}

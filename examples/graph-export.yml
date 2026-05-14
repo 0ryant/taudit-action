@@ -1,0 +1,30 @@
+name: taudit graph
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  graph:
+    name: export authority graph
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export authority graph
+        uses: 0ryant/taudit-action@v1
+        with:
+          mode: graph
+          paths: .github/workflows/
+          graph-view: authority
+          format: mermaid
+          output: taudit-authority-graph.mmd
+
+      - name: Upload authority graph
+        uses: actions/upload-artifact@v4
+        with:
+          name: taudit-authority-graph
+          path: taudit-authority-graph.mmd

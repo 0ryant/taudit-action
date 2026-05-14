@@ -1,0 +1,24 @@
+name: taudit
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify pipeline policy
+        uses: 0ryant/taudit-action@v1
+        with:
+          mode: verify
+          policy: .taudit/policy/
+          paths: .github/workflows/
+          include-builtin: true
+          strict: true
