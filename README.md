@@ -208,7 +208,7 @@ Pin both the action and the CLI version used by the action.
 ```yaml
 - uses: 0ryant/taudit-action@v1
   with:
-    version: 1.1.3
+    version: 1.1.4
     mode: verify
     policy: .taudit/policy/
     paths: .github/workflows/
