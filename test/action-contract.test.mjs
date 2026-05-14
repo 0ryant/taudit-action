@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -61,6 +62,18 @@ test('verify without policy fails before invoking CLI', async () => {
     /policy|required/i,
   );
   assert.deepEqual(calls, []);
+});
+
+test('bin entrypoint invokes the action runner', () => {
+  const result = spawnSync(process.execPath, [join(repoRoot, 'bin/taudit-action')], {
+    cwd: repoRoot,
+    env: { ...process.env, INPUT_MODE: 'verify', INPUT_PATHS: '.github/workflows/' },
+    encoding: 'utf8',
+    shell: false,
+  });
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /policy is required for verify mode/);
 });
 
 test('verify excludes built-ins by default and includes them only when requested', async () => {
