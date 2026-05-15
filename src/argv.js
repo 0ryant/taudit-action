@@ -17,16 +17,17 @@ export function buildArgv(input) {
 
   if (input.mode === 'graph') {
     addPair(argv, '--view', input['graph-view'] ?? 'authority');
+  } else {
+    addPair(argv, '--ignore-file', input['ignore-file']);
+    addPair(argv, '--suppressions', input.suppressions);
+    addPair(argv, '--suppression-mode', input['suppression-mode']);
+    addPair(argv, '--baseline-root', input['baseline-root']);
+    addPair(argv, '--severity-threshold', input['severity-threshold']);
+    addFlag(argv, '--no-color', input['no-color']);
+    addPair(argv, '-o', input.output);
   }
 
-  addPair(argv, '--ignore-file', input['ignore-file']);
-  addPair(argv, '--suppressions', input.suppressions);
-  addPair(argv, '--suppression-mode', input['suppression-mode']);
-  addPair(argv, '--baseline-root', input['baseline-root']);
   addPair(argv, '--format', input.format);
-  addPair(argv, '--severity-threshold', input['severity-threshold']);
-  addFlag(argv, '--no-color', input['no-color']);
-  addPair(argv, '-o', input.output);
 
   argv.push('--');
   for (const path of splitPaths(input.paths)) argv.push(path);

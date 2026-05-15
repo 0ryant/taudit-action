@@ -1,9 +1,11 @@
 import { execFile as execFileCallback } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgv } from './argv.js';
-import { normalizeInputs, readActionInputs } from './inputs.js';
+import { DEFAULT_TAUDIT_VERSION, normalizeInputs, readActionInputs } from './inputs.js';
 import { resolveTaudit } from './installer.js';
 import { createSummary, discoverControls } from './summary.js';
 
@@ -18,6 +20,7 @@ export async function runAction(deps = {}) {
   const taudit = await resolveTaudit(input, deps);
   const argv = buildArgv(input);
   const result = await runTaudit(taudit, argv, deps.execFile ?? execFile, input);
+  await persistGraphOutput(input, result, deps);
   const outcome = outcomeFor(result.exitCode);
   const controls = discoverControls(input, deps.workspace ?? process.cwd());
   const context = contextFor(input, result, controls, outcome, secrets);
@@ -56,7 +59,7 @@ async function runTaudit(binary, argv, exec, input) {
 function contextFor(input, result, controls, outcome, secrets) {
   return {
     mode: input.mode,
-    tauditVersion: input.version ?? '1.1.2',
+    tauditVersion: input.version ?? DEFAULT_TAUDIT_VERSION,
     policyPath: input.policy,
     includeBuiltin: Boolean(input['include-builtin']),
     ignoreFile: controls.ignoreFile,
@@ -78,7 +81,7 @@ function setOutputs(context, input, result, deps) {
   const output = (name, value) => setOutput(name, value ?? '', deps);
   output('exit-code', String(result.exitCode));
   output('outcome', context.outcome);
-  output('report-path', input.output ?? '');
+  output('report-path', input.mode === 'graph' ? '' : input.output ?? '');
   output('graph-path', input.mode === 'graph' ? input.output ?? '' : '');
   output('findings-count', parsedSummary.findingsCount ?? result.parsed?.findings?.length ?? '');
   output('policy-path', context.policyPath ?? '');
@@ -146,6 +149,17 @@ function parseJson(text) {
   } catch {
     return undefined;
   }
+}
+
+async function persistGraphOutput(input, result, deps) {
+  if (input.mode !== 'graph' || !input.output) {
+    return;
+  }
+
+  const workspace = deps.workspace ?? process.cwd();
+  const outputPath = join(workspace, input.output);
+  mkdirSync(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, result.stdout ?? '', 'utf8');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

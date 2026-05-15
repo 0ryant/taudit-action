@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
   assertArgvHasPair,
   assertNoFlag,
@@ -178,6 +179,29 @@ test('graph-view authority and exploit map to argv', async () => {
   assertArgvHasPair(exploit, '--view', 'exploit');
 });
 
+test('graph mode does not inherit verify or scan only flags', async () => {
+  const argv = await buildArgv({
+    mode: 'graph',
+    paths: '.github/workflows/',
+    'graph-view': 'exploit',
+    'ignore-file': '.tauditignore',
+    suppressions: '.taudit-suppressions.yml',
+    'suppression-mode': 'tag-only',
+    'baseline-root': '.',
+    'severity-threshold': 'high',
+    output: 'artifacts/graph.mmd',
+    'no-color': 'true',
+  });
+
+  assertNoFlag(argv, '--ignore-file');
+  assertNoFlag(argv, '--suppressions');
+  assertNoFlag(argv, '--suppression-mode');
+  assertNoFlag(argv, '--baseline-root');
+  assertNoFlag(argv, '--severity-threshold');
+  assertNoFlag(argv, '--no-color');
+  assertNoFlag(argv, '-o');
+});
+
 test('baseline-root, gate-on-all, and ignore-partial map to argv', async () => {
   const argv = await buildArgv({
     mode: 'verify',
@@ -203,6 +227,41 @@ test('summary/output helpers do not leak secret-like fixture values', async () =
   }
   assert.match(rendered, /taudit mode: verify|mode:\s*verify/i);
   assert.match(rendered, /ADO enrichment:\s*configured|ado enrichment.*configured/i);
+});
+
+test('graph output is written by the wrapper and surfaced as graph-path only', async () => {
+  const run = await loadApi('runner', ['runAction', 'run', 'main']);
+  const outputs = new Map();
+  const summaryWrites = [];
+  const workspace = mkdtempSync(join(tmpdir(), 'taudit-action-graph-'));
+
+  const result = await run({
+    inputs: {
+      mode: 'graph',
+      paths: '.github/workflows/',
+      format: 'mermaid',
+      output: 'artifacts/taudit-graph.mmd',
+      version: '1.1.4',
+    },
+    workspace,
+    tauditPath: '/tmp/fake-taudit',
+    execFile: async (_binary, argv) => {
+      assertNoFlag(argv, '-o');
+      return { stdout: 'graph TD\nA-->B\n', stderr: '' };
+    },
+    setSecret: () => {},
+    setOutput: (name, value) => outputs.set(name, String(value)),
+    summary: {
+      addRaw: (text) => summaryWrites.push(String(text)),
+      write: async () => {},
+    },
+  });
+
+  assert.equal(result.context.outcome, 'pass');
+  assert.equal(outputs.get('report-path'), '');
+  assert.equal(outputs.get('graph-path'), 'artifacts/taudit-graph.mmd');
+  assert.equal(existsSync(join(workspace, 'artifacts', 'taudit-graph.mmd')), true);
+  assert.match(summaryWrites.join('\n'), /taudit mode: graph/i);
 });
 
 test('boolean and integer inputs are parsed before argv construction', async () => {

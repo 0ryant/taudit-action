@@ -4,13 +4,14 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
+import { DEFAULT_TAUDIT_VERSION } from './inputs.js';
 
 const execFile = promisify(execFileCallback);
 
 export async function resolveTaudit(input, deps = {}) {
   const exec = deps.execFile ?? execFile;
   const workspace = deps.workspace ?? process.cwd();
-  const version = input.version ?? '1.1.2';
+  const version = input.version ?? DEFAULT_TAUDIT_VERSION;
   if (deps.tauditPath) return deps.tauditPath;
 
   try {

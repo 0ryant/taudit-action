@@ -24,6 +24,8 @@ export const INPUT_NAMES = [
   'fallback-cargo',
 ];
 
+export const DEFAULT_TAUDIT_VERSION = '1.1.4';
+
 const ENUMS = {
   mode: ['verify', 'scan', 'graph'],
   platform: ['auto', 'github-actions', 'azure-devops', 'gitlab', 'bitbucket'],
