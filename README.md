@@ -12,10 +12,11 @@ The full source-of-truth contract for the Marketplace action lives in the
 [`docs/integrations/github-marketplace-action-contract.md`](https://github.com/0ryant/taudit/blob/main/docs/integrations/github-marketplace-action-contract.md).
 This README is the operator-facing guide for that contract.
 
-## Quickstart: required verify gate
+## Golden path: required verify gate
 
-Add this workflow and mark the `taudit / verify` job as a required status check
-in branch protection.
+Start with a single required `verify` job. It should run on pull requests with
+`contents: read`, use an explicit policy path, and expose the wrapper outputs so
+reviewers can confirm what the gate actually evaluated.
 
 ```yaml
 name: taudit
@@ -28,25 +29,49 @@ permissions:
 
 jobs:
   verify:
-    name: verify
+    name: taudit / verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Verify pipeline policy
+        id: taudit
         uses: 0ryant/taudit-action@v1
         with:
           mode: verify
+          version: 1.1.4
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
+
+      - name: Self-audit taudit outputs
+        if: always()
+        run: |
+          echo "outcome=${{ steps.taudit.outputs.outcome }}"
+          echo "exit-code=${{ steps.taudit.outputs.exit-code }}"
+          echo "policy=${{ steps.taudit.outputs.policy-path }}"
+          echo "baseline-status=${{ steps.taudit.outputs.baseline-status }}"
+          echo "new-findings=${{ steps.taudit.outputs.new-findings-count }}"
+          echo "waived=${{ steps.taudit.outputs.waived-count }}"
+          echo "taudit-version=${{ steps.taudit.outputs.taudit-version }}"
 ```
 
 `verify` is the default mode, but setting it explicitly makes the merge gate
 clear to reviewers. The default permission is `contents: read`; do not give the
 scanner job write tokens, deployment credentials, cloud credentials, or secrets
 unless you have a specific reviewed need.
+
+What to verify after the first run:
+
+- The required check name in branch protection matches `taudit / verify`.
+- The step summary shows the expected `policy`, discovered suppressions or
+  ignore file, baseline status, and gate mode.
+- The outputs match the review intent: `outcome`, `exit-code`,
+  `new-findings-count`, `waived-count`, and `taudit-version`.
+- A non-zero exit is treated as authoritative for gate failure; outputs and the
+  step summary explain what the wrapper saw, they do not override the job
+  result.
 
 ## Configuration model
 
@@ -203,7 +228,13 @@ SARIF from trusted branch or scheduled workflows.
 
 ## Pinning
 
-Pin both the action and the CLI version used by the action.
+Pin both layers:
+
+- the GitHub Action ref in `uses:`
+- the `taudit` CLI version in `with.version`
+
+The Marketplace-friendly form below is readable, but `@v1` is a moving
+compatibility ref:
 
 ```yaml
 - uses: 0ryant/taudit-action@v1
@@ -214,9 +245,13 @@ Pin both the action and the CLI version used by the action.
     paths: .github/workflows/
 ```
 
-Use immutable release tags or commit SHAs for production change-control. The
-`v1` tag is a compatibility tag and can move to newer compatible v1 releases.
-Do not use floating `latest` for the `taudit` binary.
+For production change-control, replace `@v1` with the exact immutable release
+tag or full commit SHA you approved. Keep `version` exact as well. Do not use a
+floating `latest` for the `taudit` binary.
+
+`fallback-cargo: true` is a recovery path, not the default pinning model. The
+normal path downloads the exact GitHub release asset for `version` and verifies
+its published SHA-256 checksum before extraction.
 
 ## Inputs
 
@@ -249,10 +284,37 @@ Azure DevOps enrichment inputs are optional and all-or-none: `ado-org`,
 `ado-project`, and `ado-pat`. The PAT should have read-only variable group
 scope and must be passed as a GitHub secret.
 
+## Self-audit semantics
+
+The action emits two operator-facing audit surfaces on every run:
+
+- a GitHub step summary written by the wrapper
+- GitHub Action outputs written to `GITHUB_OUTPUT`
+
+The summary includes the requested mode, selected `taudit` version, policy
+path, discovered ignore and suppression files, baseline root and status,
+partial-graph policy, ADO enrichment status, gate mode, exit code, outcome, and
+parsed counts where available.
+
+These fields are useful for review and automation, but they are still local job
+signals. They describe what the wrapper invoked and what machine-readable
+results it could parse. They are not an independent hosted attestation that the
+runner saw every file, that GitHub proved repository completeness, or that a
+missing parsed count means zero findings.
+
+Treat the trust boundary like this:
+
+- The job exit code is the authoritative pass/fail signal.
+- The step summary and outputs explain the wrapper context around that result.
+- Uploaded JSON, SARIF, or graph artifacts are stronger evidence than log text
+  when you need later audit or comparison.
+- If you need stronger provenance than the GitHub job record itself, capture and
+  retain artifacts from a trusted workflow or runner you control.
+
 ## Outputs
 
-The action exposes machine-readable outputs from the wrapper summary where
-available:
+The action exposes machine-readable outputs from wrapper context and parsed
+machine output where available:
 
 | Output | Meaning |
 | --- | --- |
@@ -260,19 +322,28 @@ available:
 | `outcome` | `pass`, `violations`, or `config-error`. |
 | `report-path` | File written by `output`, if any. |
 | `graph-path` | Graph output path for `mode: graph`. |
-| `findings-count` | Parsed finding count where available. |
+| `findings-count` | Parsed finding count where available. Blank means no machine-readable count was recovered. |
 | `policy-path` | Policy input used for `verify`. |
 | `ignore-file-used` | Explicit or discovered ignore file, if known. |
 | `suppressions-file-used` | Explicit or discovered suppressions file, if known. |
 | `suppression-mode-used` | `downgrade` or `tag-only`. |
 | `baseline-root-used` | Baseline root used for `scan` or `verify`. |
-| `baseline-status` | `found`, `missing`, `unused`, or `unknown`. |
+| `baseline-status` | Whether `.taudit/baselines/` was found under the selected root. |
 | `partial-policy` | `normal` or `ignore-partial`. |
-| `ado-enrichment` | `unused`, `configured`, or `failed`. |
-| `new-findings-count` | New finding count where parsed. |
-| `preexisting-critical-count` | Pre-existing critical count where parsed. |
-| `waived-count` | Suppressed or baseline-waived count where parsed. |
-| `taudit-version` | Actual binary version invoked. |
+| `ado-enrichment` | Wrapper enrichment status. Today this is `unused` or `configured`; job failure is still the authoritative failure signal. |
+| `new-findings-count` | New finding count where parsed from machine output. |
+| `preexisting-critical-count` | Pre-existing critical count where parsed from machine output. |
+| `waived-count` | Suppressed or baseline-waived count where parsed from machine output. |
+| `taudit-version` | The version the wrapper selected for invocation and reports in the summary. |
+
+Typical downstream uses:
+
+- Fail-open diagnostics: print outputs in an `if: always()` step after the gate.
+- Audit retention: pair `format: json` or `format: sarif` with `output` and
+  upload the resulting file as an artifact.
+- Rollout reporting: monitor `baseline-status`, `new-findings-count`, and
+  `preexisting-critical-count` as teams move from baseline gating to
+  `gate-on-all: true`.
 
 ## Exit codes
 
@@ -286,11 +357,22 @@ available:
 
 `scan` is advisory/bootstrap in v1. Use `verify` for merge gates.
 
-## Security model
+## Trust model
 
-The v1 action surface is typed. It does not expose `extra-args`, shell command
-overrides, raw CLI passthrough, or arbitrary script inputs. Inputs are intended
-to map to argv elements, not concatenated shell strings.
+The action surface is typed. It does not expose `extra-args`, shell command
+overrides, raw CLI passthrough, or arbitrary script inputs. Observed wrapper
+behavior today is:
+
+- inputs are normalized and validated before execution
+- path-like inputs must stay workspace-relative
+- `verify` requires `policy`
+- ADO enrichment inputs are all-or-none
+- the wrapper maps inputs to argv elements, not concatenated shell strings
+
+That reduces accidental footguns, but it is not a proof system by itself. The
+action runs inside the same GitHub job trust boundary as the rest of your
+workflow. Keep untrusted pull-request runs read-only, separate SARIF upload from
+the scanner job, and treat artifacts plus job history as the audit trail.
 
 Recommended defaults:
 

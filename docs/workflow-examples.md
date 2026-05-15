@@ -1,10 +1,10 @@
 # Workflow examples
 
-These examples follow the proposed v1 Marketplace contract. They are
-conservative defaults for teams adopting taudit as a required GitHub Actions
-check.
+These examples follow the current action surface and keep `verify` as the
+operator-facing golden path. Start there, then add baselines, suppressions,
+SARIF, or graph export as needed.
 
-## Fresh repository: strict verify gate
+## Golden path: required verify gate
 
 ```yaml
 name: taudit
@@ -17,16 +17,65 @@ permissions:
 
 jobs:
   verify:
+    name: taudit / verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: 0ryant/taudit-action@v1
+      - id: taudit
+        uses: 0ryant/taudit-action@v1
         with:
           mode: verify
+          version: 1.1.4
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
           strict: true
+      - if: always()
+        run: |
+          echo "outcome=${{ steps.taudit.outputs.outcome }}"
+          echo "exit=${{ steps.taudit.outputs.exit-code }}"
+          echo "policy=${{ steps.taudit.outputs.policy-path }}"
+          echo "baseline=${{ steps.taudit.outputs.baseline-status }}"
+          echo "new=${{ steps.taudit.outputs.new-findings-count }}"
+          echo "waived=${{ steps.taudit.outputs.waived-count }}"
+```
+
+Use `@v1` for discovery and examples. For production change-control, replace it
+with the exact immutable release tag or full commit SHA you approved and keep
+`version` pinned as well.
+
+## Verify gate with JSON evidence artifact
+
+```yaml
+name: taudit audit evidence
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: taudit / verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: taudit
+        uses: 0ryant/taudit-action@v1
+        with:
+          mode: verify
+          version: 1.1.4
+          policy: .taudit/policy/
+          paths: .github/workflows/
+          include-builtin: true
+          format: json
+          output: taudit-report.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taudit-report
+          path: taudit-report.json
 ```
 
 ## Existing repository: baseline-first rollout
@@ -58,6 +107,7 @@ jobs:
       - uses: 0ryant/taudit-action@v1
         with:
           mode: verify
+          version: 1.1.4
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
@@ -85,6 +135,7 @@ Use `downgrade` when the waiver should affect severity-threshold gating:
 - uses: 0ryant/taudit-action@v1
   with:
     mode: verify
+    version: 1.1.4
     policy: .taudit/policy/
     paths: .github/workflows/
     suppressions: .taudit-suppressions.yml
@@ -93,6 +144,23 @@ Use `downgrade` when the waiver should affect severity-threshold gating:
 
 Use `tag-only` when downstream systems should see the waiver metadata but the
 finding should still count at its original severity in `verify`.
+
+## Gate all findings after rollout
+
+When the baseline has served its adoption purpose, flip the gate from
+"new findings plus unwaived critical pre-existing" to the full current set:
+
+```yaml
+- uses: 0ryant/taudit-action@v1
+  with:
+    mode: verify
+    version: 1.1.4
+    policy: .taudit/policy/
+    paths: .github/workflows/
+    include-builtin: true
+    baseline-root: .
+    gate-on-all: true
+```
 
 ## Coarse ignore
 
@@ -103,6 +171,7 @@ per-finding suppressions when possible.
 - uses: 0ryant/taudit-action@v1
   with:
     mode: verify
+    version: 1.1.4
     policy: .taudit/policy/
     paths: .github/workflows/
     ignore-file: .tauditignore
@@ -133,6 +202,7 @@ jobs:
         continue-on-error: true
         with:
           mode: verify
+          version: 1.1.4
           policy: .taudit/policy/
           paths: .github/workflows/
           format: sarif
@@ -143,6 +213,9 @@ jobs:
 ```
 
 ## Graph artifact
+
+Graph mode is observational. Use it to inspect modeled authority paths, not as
+a substitute for the required `verify` gate.
 
 ```yaml
 name: taudit graph
@@ -161,6 +234,7 @@ jobs:
       - uses: 0ryant/taudit-action@v1
         with:
           mode: graph
+          version: 1.1.4
           paths: .github/workflows/
           graph-view: authority
           format: mermaid
