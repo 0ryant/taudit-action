@@ -13,9 +13,6 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: smoke-test
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +20,7 @@ jobs:
         uses: 0ryant/taudit-action@04afde52cdb8d4c96640672d92bfe74e9592a353
         with:
           mode: scan
-          paths: .github/workflows/target.yml
+          paths: smoke-test/.github/workflows/target.yml
           platform: github-actions
           format: json
           output: taudit-smoke.json
