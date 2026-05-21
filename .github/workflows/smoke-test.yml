@@ -1,0 +1,33 @@
+name: taudit-action smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'smoke-test/**'
+      - '.github/workflows/smoke-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: audit
+        uses: 0ryant/taudit-action@04afde52cdb8d4c96640672d92bfe74e9592a353
+        with:
+          mode: scan
+          paths: smoke-test/.github/workflows/target.yml
+          platform: github-actions
+          format: json
+          output: taudit-smoke.json
+
+      - name: Assert smoke contract
+        run: |
+          test "${{ steps.audit.outputs.taudit-version }}" = "1.1.4"
+          test "${{ steps.audit.outputs.outcome }}" = "pass"
+          test -s taudit-smoke.json
+          jq -e '.schema_version and .summary' taudit-smoke.json >/dev/null
