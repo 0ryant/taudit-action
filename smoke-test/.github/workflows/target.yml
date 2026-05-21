@@ -1,0 +1,13 @@
+name: target
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
