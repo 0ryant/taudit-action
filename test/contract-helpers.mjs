@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const repoRoot = new URL('..', import.meta.url).pathname.replace(/\/test\/?$/, '');
+export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const contractInputs = [
   'mode',
