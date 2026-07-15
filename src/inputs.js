@@ -24,7 +24,7 @@ export const INPUT_NAMES = [
   'fallback-cargo',
 ];
 
-export const DEFAULT_TAUDIT_VERSION = '1.1.4';
+export const DEFAULT_TAUDIT_VERSION = '1.1.5';
 
 const ENUMS = {
   mode: ['verify', 'scan', 'graph'],

@@ -40,7 +40,7 @@ jobs:
         uses: 0ryant/taudit-action@v1
         with:
           mode: verify
-          version: 1.1.4
+          version: 1.1.5
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
@@ -239,7 +239,7 @@ compatibility ref:
 ```yaml
 - uses: 0ryant/taudit-action@v1
   with:
-    version: 1.1.4
+    version: 1.1.5
     mode: verify
     policy: .taudit/policy/
     paths: .github/workflows/

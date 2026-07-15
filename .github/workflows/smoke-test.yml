@@ -27,7 +27,7 @@ jobs:
 
       - name: Assert smoke contract
         run: |
-          test "${{ steps.audit.outputs.taudit-version }}" = "1.1.4"
+          test "${{ steps.audit.outputs.taudit-version }}" = "1.1.5"
           test "${{ steps.audit.outputs.outcome }}" = "pass"
           test -s taudit-smoke.json
           jq -e '.schema_version and .summary' taudit-smoke.json >/dev/null

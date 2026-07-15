@@ -25,7 +25,7 @@ jobs:
         uses: 0ryant/taudit-action@v1
         with:
           mode: verify
-          version: 1.1.4
+          version: 1.1.5
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
@@ -65,7 +65,7 @@ jobs:
         uses: 0ryant/taudit-action@v1
         with:
           mode: verify
-          version: 1.1.4
+          version: 1.1.5
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
@@ -107,7 +107,7 @@ jobs:
       - uses: 0ryant/taudit-action@v1
         with:
           mode: verify
-          version: 1.1.4
+          version: 1.1.5
           policy: .taudit/policy/
           paths: .github/workflows/
           include-builtin: true
@@ -135,7 +135,7 @@ Use `downgrade` when the waiver should affect severity-threshold gating:
 - uses: 0ryant/taudit-action@v1
   with:
     mode: verify
-    version: 1.1.4
+    version: 1.1.5
     policy: .taudit/policy/
     paths: .github/workflows/
     suppressions: .taudit-suppressions.yml
@@ -154,7 +154,7 @@ When the baseline has served its adoption purpose, flip the gate from
 - uses: 0ryant/taudit-action@v1
   with:
     mode: verify
-    version: 1.1.4
+    version: 1.1.5
     policy: .taudit/policy/
     paths: .github/workflows/
     include-builtin: true
@@ -171,7 +171,7 @@ per-finding suppressions when possible.
 - uses: 0ryant/taudit-action@v1
   with:
     mode: verify
-    version: 1.1.4
+    version: 1.1.5
     policy: .taudit/policy/
     paths: .github/workflows/
     ignore-file: .tauditignore
@@ -202,7 +202,7 @@ jobs:
         continue-on-error: true
         with:
           mode: verify
-          version: 1.1.4
+          version: 1.1.5
           policy: .taudit/policy/
           paths: .github/workflows/
           format: sarif
@@ -234,7 +234,7 @@ jobs:
       - uses: 0ryant/taudit-action@v1
         with:
           mode: graph
-          version: 1.1.4
+          version: 1.1.5
           paths: .github/workflows/
           graph-view: authority
           format: mermaid

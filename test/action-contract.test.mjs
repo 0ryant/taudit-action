@@ -241,7 +241,7 @@ test('graph output is written by the wrapper and surfaced as graph-path only', a
       paths: '.github/workflows/',
       format: 'mermaid',
       output: 'artifacts/taudit-graph.mmd',
-      version: '1.1.4',
+      version: '1.1.5',
     },
     workspace,
     tauditPath: '/tmp/fake-taudit',
